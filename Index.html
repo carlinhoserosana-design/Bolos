@@ -28,38 +28,61 @@
     .btn-whats { background: #25d366; color: white; border: none; padding: 8px; border-radius: 5px; }
     .filtros { margin-bottom: 15px; display: flex; gap: 5px; }
     .filtros button { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; background: white; }
-     .banner-img {
-    max-width: 99%;            /* Garante que não ultrapasse a tela em celulares */
-    height: auto;
-    display: block;
-  }
+    .banner-img {
+      max-width: 99%;
+      height: auto;
+      display: block;
+    }
 
-  // slide
+    /* Configuração do Slider dentro do Card */
+    .slider {
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      position: relative;
+      background: white;
+    }
 
-  /* Configuração do Slider dentro do Card */
-.slider {width: 100%; height: 200px; /* Altura do topo do card */
-  overflow: hidden; position: relative;  background: white;}
+    .slide-track {
+      display: flex;
+      width: calc(250px * 8);
+      animation: scroll 15s linear infinite;
+    }
 
-.slide-track {  display: flex;  width: calc(250px * 8); /* Ajuste: largura de cada slide x total de imagens */
-  animation: scroll 15s linear infinite;}
+    .slide {
+      width: 250px;
+      height: 200px;
+      position: relative;
+      flex-shrink: 0;
+    }
 
-.slide {  width: 250px; /* Largura de cada imagem no slide */
-  height: 200px;  position: relative;  flex-shrink: 0;}
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
-.slide img {  width: 100%;  height: 100%;  object-fit: cover; /* Faz a imagem preencher o espaço sem distorcer */
-}
+    .slide span {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+    }
 
-.slide span {  position: absolute;  bottom: 10px;  left: 10px;  background: rgba(0, 0, 0, 0.6);  color: white;
-  padding: 2px 8px;  border-radius: 5px;  font-size: 11px;}
+    /* Animação de movimento */
+    @keyframes scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(calc(-250px * 4)); }
+    }
 
-/* Animação de movimento */
-@keyframes scroll {  0% { transform: translateX(0); }
-  100% { transform: translateX(calc(-250px * 4)); } /* Move metade do total de slides */
-}
-
-/* Pausar o slide quando o usuário passar o mouse ou clicar (opcional) */
-.slider:hover .slide-track {  animation-play-state: paused;}
-
+    /* Pausar o slide quando o usuário passar o mouse ou clicar */
+    .slider:hover .slide-track {
+      animation-play-state: paused;
+    }
 
   </style>
 </head>
@@ -155,7 +178,6 @@
 </div>
 
 <script>
-  const URL_DO_SCRIPT = "https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec";
   let kitGlobal = "";
   let valorGlobal = "";
   let pedidosCache = [];
@@ -179,11 +201,23 @@
 
     const dados = { nome: nome, telefone: tel, kit: kitGlobal, valor: valorGlobal };
     
-    google.script.run.withSuccessHandler(function() {
-      const msg = "Olá! Meu nome é " + nome + ". Acabei de solicitar o (a) " + kitGlobal + " (R$ " + valorGlobal + ")";
-      const url = "https://wa.me/5565999383160?text=" + encodeURIComponent(msg);
-      window.top.location.href = url;
-    }).salvarPedido(dados);
+    if (typeof google !== 'undefined' && google.script) {
+      google.script.run.withSuccessHandler(function() {
+        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+      }).withFailureHandler(function(error) {
+        console.error("Erro ao salvar pedido:", error);
+        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+      }).salvarPedido(dados);
+    } else {
+      // Fallback: enviar direto para WhatsApp se não estiver em Google Apps Script
+      enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+    }
+  }
+
+  function enviarParaWhatsApp(nome, kit, valor) {
+    const msg = "Olá! Meu nome é " + nome + ". Acabei de solicitar o (a) " + kit + " (R$ " + valor + ")";
+    const url = "https://wa.me/5565999383160?text=" + encodeURIComponent(msg);
+    window.top.location.href = url;
   }
 
   function abrirAdmin() {
@@ -198,10 +232,17 @@
   }
 
   function carregarPedidos() {
-    google.script.run.withSuccessHandler(function(dados) {
-      pedidosCache = dados;
-      renderPedidos('todos');
-    }).listarPedidos();
+    if (typeof google !== 'undefined' && google.script) {
+      google.script.run.withSuccessHandler(function(dados) {
+        pedidosCache = dados || [];
+        renderPedidos('todos');
+      }).withFailureHandler(function(error) {
+        console.error("Erro ao carregar pedidos:", error);
+        document.getElementById("listaPedidos").innerHTML = "Erro ao carregar pedidos. Verifique se está hospedado em Google Apps Script.";
+      }).listarPedidos();
+    } else {
+      document.getElementById("listaPedidos").innerHTML = "Erro: página não está hospedada em Google Apps Script.";
+    }
   }
 
   function renderPedidos(filtro) {
@@ -226,7 +267,7 @@
         html += '<button class="btn-confirmar" onclick="confirmarPedido(' + p.linha + ')">✅ Confirmar</button>';
       }
       
-      html += '<button class="btn-whats" onclick="abrirWhats(\''+p.telefone+'\')">💬 WhatsApp</button>';
+      html += '<button class="btn-whats" onclick="abrirWhats(\'' + p.telefone + '\')">💬 WhatsApp</button>';
       html += '</div>';
     });
 
@@ -234,7 +275,9 @@
   }
 
   function confirmarPedido(linha) {
-    google.script.run.withSuccessHandler(carregarPedidos).confirmarPedido(linha);
+    if (typeof google !== 'undefined' && google.script) {
+      google.script.run.withSuccessHandler(carregarPedidos).confirmarPedido(linha);
+    }
   }
 
   function abrirWhats(tel) {
