@@ -199,22 +199,10 @@
       return;
     }
 
-    const dados = { nome: nome, telefone: tel, kit: kitGlobal, valor: valorGlobal };
-    
-    if (typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler(function() {
-        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
-      }).withFailureHandler(function(error) {
-        console.error("Erro ao salvar pedido:", error);
-        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
-      }).salvarPedido(dados);
-    } else {
-      // Fallback: enviar direto para WhatsApp se não estiver em Google Apps Script
-      enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
-    }
+    enviarParaWhatsApp(nome, kitGlobal, valorGlobal, tel);
   }
 
-  function enviarParaWhatsApp(nome, kit, valor) {
+  function enviarParaWhatsApp(nome, kit, valor, tel) {
     const msg = "Olá! Meu nome é " + nome + ". Acabei de solicitar o (a) " + kit + " (R$ " + valor + ")";
     const url = "https://wa.me/5565999383160?text=" + encodeURIComponent(msg);
     window.top.location.href = url;
@@ -232,17 +220,29 @@
   }
 
   function carregarPedidos() {
-    if (typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler(function(dados) {
-        pedidosCache = dados || [];
-        renderPedidos('todos');
-      }).withFailureHandler(function(error) {
-        console.error("Erro ao carregar pedidos:", error);
-        document.getElementById("listaPedidos").innerHTML = "Erro ao carregar pedidos. Verifique se está hospedado em Google Apps Script.";
-      }).listarPedidos();
-    } else {
-      document.getElementById("listaPedidos").innerHTML = "Erro: página não está hospedada em Google Apps Script.";
-    }
+    // Dados de exemplo para demonstração (em produção, isso viria de um backend)
+    pedidosCache = [
+      {
+        nome: "João Silva",
+        data: "2026-04-24",
+        kit: "Kit 1",
+        valor: "130,00",
+        telefone: "5565999383160",
+        status: "ABERTO",
+        linha: 1
+      },
+      {
+        nome: "Maria Santos",
+        data: "2026-04-23",
+        kit: "Kit 2",
+        valor: "185,00",
+        telefone: "5565999383161",
+        status: "CONFIRMADO",
+        linha: 2
+      }
+    ];
+    
+    renderPedidos('todos');
   }
 
   function renderPedidos(filtro) {
@@ -281,9 +281,10 @@
   }
 
   function confirmarPedido(linha) {
-    if (typeof google !== 'undefined' && google.script) {
-      google.script.run.withSuccessHandler(carregarPedidos).confirmarPedido(linha);
-    }
+    // Aqui você poderia fazer uma requisição para um backend para atualizar o status
+    alert("Pedido #" + linha + " confirmado!");
+    // Para demonstração, apenas recarrega
+    carregarPedidos();
   }
 
   function abrirWhats(tel) {
