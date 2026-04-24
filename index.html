@@ -252,8 +252,14 @@
       return;
     }
 
-    pedidosCache.forEach(function(p) {
-      if (filtro !== 'todos' && p.status !== filtro) return;
+    const pedidosFiltrados = pedidosCache.filter(p => filtro === 'todos' || p.status === filtro);
+    
+    if (pedidosFiltrados.length === 0) {
+      document.getElementById("listaPedidos").innerHTML = "Nenhum pedido encontrado com este filtro.";
+      return;
+    }
+
+    pedidosFiltrados.forEach(function(p) {
       const corStatus = p.status === 'CONFIRMADO' ? '#27ae60' : '#e67e22';
       
       html += '<div class="pedido-card" style="border-left-color:' + corStatus + '">';
@@ -267,7 +273,7 @@
         html += '<button class="btn-confirmar" onclick="confirmarPedido(' + p.linha + ')">✅ Confirmar</button>';
       }
       
-      html += '<button class="btn-whats" onclick="abrirWhats(\'' + p.telefone + '\')">💬 WhatsApp</button>';
+      html += '<button class="btn-whats" onclick="abrirWhats(' + p.telefone + ')">💬 WhatsApp</button>';
       html += '</div>';
     });
 
@@ -281,7 +287,7 @@
   }
 
   function abrirWhats(tel) {
-    let numero = tel.replace(/\D/g,'');
+    let numero = String(tel).replace(/\D/g,'');
     if(numero.length === 11) numero = "55" + numero;
     window.open("https://wa.me/" + numero, "_blank");
   }
