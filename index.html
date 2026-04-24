@@ -22,12 +22,12 @@
     .btn-admin-trigger { background: #333; color: white; border: none; padding: 8px 15px; margin: 10px; border-radius: 5px; font-size: 12px; }
     
     /* Estilos do Admin */
-    #adminPanel { display:none; padding:15px; background: #f4f4f4; min-height: 100vh; position: absolute; top:0; left:0; width: 100%; box-sizing: border-box; z-index: 1000; }
+    #adminPanel { display:none; padding:15px; background: #f4f4f4; min-height: 100vh; position: fixed; top:0; left:0; width: 100%; box-sizing: border-box; z-index: 1000; overflow-y: auto; padding-bottom: 20px; }
     .pedido-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
-    .btn-confirmar { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 5px; margin-right: 5px; }
-    .btn-whats { background: #25d366; color: white; border: none; padding: 8px; border-radius: 5px; }
+    .btn-confirmar { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 5px; margin-right: 5px; cursor: pointer; }
+    .btn-whats { background: #25d366; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; }
     .filtros { margin-bottom: 15px; display: flex; gap: 5px; }
-    .filtros button { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; background: white; }
+    .filtros button { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ccc; background: white; cursor: pointer; }
     .banner-img {
       max-width: 99%;
       height: auto;
@@ -163,9 +163,9 @@
 </div>
 
 <div id="adminPanel">
-  <div style="display:flex; justify-content: space-between; align-items: center;">
+  <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <h3>📋 Gestão de Pedidos</h3>
-    <button onclick="location.reload()" style="background:none; border: 1px solid #999; border-radius: 5px; padding: 5px;">Sair</button>
+    <button onclick="fecharAdmin()" style="background:#c0392b; color: white; border: none; border-radius: 5px; padding: 8px 15px; cursor: pointer;">Sair</button>
   </div>
   
   <div class="filtros">
@@ -174,7 +174,7 @@
     <button onclick="renderPedidos('CONFIRMADO')">Confirmados</button>
   </div>
 
-  <div id="listaPedidos">Carregando pedidos...</div>
+  <div id="listaPedidos"></div>
 </div>
 
 <script>
@@ -219,6 +219,11 @@
     }
   }
 
+  function fecharAdmin() {
+    document.getElementById("mainContent").style.display = "block";
+    document.getElementById("adminPanel").style.display = "none";
+  }
+
   function carregarPedidos() {
     // Dados de exemplo para demonstração (em produção, isso viria de um backend)
     pedidosCache = [
@@ -247,15 +252,16 @@
 
   function renderPedidos(filtro) {
     let html = "";
+    
     if (!pedidosCache || pedidosCache.length === 0) {
-      document.getElementById("listaPedidos").innerHTML = "Nenhum pedido encontrado.";
+      document.getElementById("listaPedidos").innerHTML = "<p>Nenhum pedido encontrado.</p>";
       return;
     }
 
     const pedidosFiltrados = pedidosCache.filter(p => filtro === 'todos' || p.status === filtro);
     
     if (pedidosFiltrados.length === 0) {
-      document.getElementById("listaPedidos").innerHTML = "Nenhum pedido encontrado com este filtro.";
+      document.getElementById("listaPedidos").innerHTML = "<p>Nenhum pedido encontrado com este filtro.</p>";
       return;
     }
 
@@ -281,10 +287,13 @@
   }
 
   function confirmarPedido(linha) {
-    // Aqui você poderia fazer uma requisição para um backend para atualizar o status
-    alert("Pedido #" + linha + " confirmado!");
-    // Para demonstração, apenas recarrega
-    carregarPedidos();
+    // Atualiza o status do pedido para CONFIRMADO
+    const pedido = pedidosCache.find(p => p.linha === linha);
+    if (pedido) {
+      pedido.status = "CONFIRMADO";
+      alert("Pedido #" + linha + " confirmado!");
+      renderPedidos('todos');
+    }
   }
 
   function abrirWhats(tel) {
