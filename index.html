@@ -2,16 +2,23 @@
 <html>
 <head>
   <base target="_top">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
-  <link rel="rosana" sizes="180x180" href="rosana.png">
+  <!-- Ícones e Manifest -->
+  <link rel="apple-touch-icon" sizes="180x180" href="rosana.png">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Configurações Web App -->
   <meta name="apple-mobile-web-app-title" content="Bolos Design">
   <meta name="application-name" content="Bolos Design">
-  
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#c0392b">
+  
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; padding-bottom: 120px; }
     .header { background: #c0392b; color: white; padding: 20px; text-align: center; font-size: 22px; font-weight: bold; }
@@ -207,6 +214,11 @@
   let pedidosCache = [];
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec';
 
+  // Registrar Service Worker para PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('Service Worker não registrado:', err));
+  }
+
   function selecionarKit(elemento, kit, valor) {
     const cards = document.querySelectorAll('.card');
     cards.forEach(c => c.classList.remove('selected'));
@@ -298,7 +310,7 @@
     const script = document.createElement('script');
     script.src = GAS_URL + '?action=listarPedidos&callback=processarPedidos&t=' + timestamp;
     script.onerror = function() {
-      document.getElementById("listaPedidos").innerHTML = "<p style='color: orange;'><strong>⚠️ Aviso:</strong> Não conseguimos conectar ao servidor. Atualize a página ou tente novamente.</p><p>Certifique-se de que o Google Apps Script foi atualizado com a função doPost().</p>";
+      document.getElementById("listaPedidos").innerHTML = "<p style='color: orange;'><strong>⚠️ Aviso:</strong> Não conseguimos conectar ao servidor. Atualize a página ou tente novamente.</p>";
     };
     document.head.appendChild(script);
   }
