@@ -183,6 +183,7 @@
   let kitGlobal = "";
   let valorGlobal = "";
   let pedidosCache = [];
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec';
 
   function selecionarKit(elemento, kit, valor) {
     const cards = document.querySelectorAll('.card');
@@ -204,7 +205,6 @@
     const dados = { nome: nome, telefone: tel, kit: kitGlobal, valor: valorGlobal };
     
     if (typeof google !== 'undefined' && google.script) {
-      // Se estiver no Google Apps Script
       google.script.run.withSuccessHandler(function() {
         enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
       }).withFailureHandler(function(error) {
@@ -212,11 +212,12 @@
         enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
       }).salvarPedido(dados);
     } else {
-      // Se estiver no GitHub Pages, envia para o Google Apps Script via Fetch
-      fetch('https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec', {
+      fetch(GAS_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'salvarPedido', dados: dados })
+        body: JSON.stringify({ action: 'salvarPedido', dados: dados }),
+        mode: 'no-cors'
       }).then(response => {
+        console.log("Pedido salvo com sucesso");
         enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
       }).catch(error => {
         console.error("Erro ao salvar:", error);
@@ -251,7 +252,6 @@
     document.getElementById("listaPedidos").innerHTML = '<span class="loading">Carregando pedidos...</span>';
     
     if (typeof google !== 'undefined' && google.script) {
-      // Se estiver no Google Apps Script
       google.script.run.withSuccessHandler(function(dados) {
         pedidosCache = dados || [];
         renderPedidos('todos');
@@ -260,18 +260,38 @@
         document.getElementById("listaPedidos").innerHTML = "<p style='color: red;'>Erro ao carregar pedidos.</p>";
       }).listarPedidos();
     } else {
-      // Se estiver no GitHub Pages, busca do Google Apps Script
-      fetch('https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec?action=listarPedidos')
-        .then(response => response.json())
-        .then(dados => {
-          pedidosCache = dados || [];
-          renderPedidos('todos');
-        })
-        .catch(error => {
-          console.error("Erro ao carregar pedidos:", error);
-          document.getElementById("listaPedidos").innerHTML = "<p style='color: red;'>Erro ao conectar com o servidor.</p>";
-        });
+      // Tenta com GET request e adiciona timestamp para evitar cache
+      const timestamp = new Date().getTime();
+      fetch(GAS_URL + '?action=listarPedidos&t=' + timestamp, {
+        method: 'GET',
+        mode: 'no-cors'
+      }).then(response => {
+        console.log("Response status:", response.status);
+        // Com mode: 'no-cors', não conseguimos ler o body
+        // Por isso vamos tentar fazer uma requisição JSONP
+        return carregarPedidosJSONP();
+      }).catch(error => {
+        console.error("Erro na requisição GET:", error);
+        // Tenta com JSONP
+        return carregarPedidosJSONP();
+      });
     }
+  }
+
+  function carregarPedidosJSONP() {
+    const timestamp = new Date().getTime();
+    const script = document.createElement('script');
+    script.src = GAS_URL + '?action=listarPedidos&callback=processarPedidos&t=' + timestamp;
+    script.onerror = function() {
+      document.getElementById("listaPedidos").innerHTML = "<p style='color: orange;'><strong>⚠️ Aviso:</strong> Não conseguimos conectar ao servidor. Atualize a página ou tente novamente.</p><p>Certifique-se de que o Google Apps Script foi atualizado com a função doPost().</p>";
+    };
+    document.head.appendChild(script);
+  }
+
+  function processarPedidos(dados) {
+    console.log("Dados recebidos:", dados);
+    pedidosCache = dados || [];
+    renderPedidos('todos');
   }
 
   function renderPedidos(filtro) {
@@ -312,16 +332,15 @@
 
   function confirmarPedido(linha) {
     if (typeof google !== 'undefined' && google.script) {
-      // Se estiver no Google Apps Script
       google.script.run.withSuccessHandler(function() {
         alert("Pedido #" + linha + " confirmado!");
         carregarPedidos();
       }).confirmarPedido(linha);
     } else {
-      // Se estiver no GitHub Pages
-      fetch('https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec', {
+      fetch(GAS_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'confirmarPedido', linha: linha })
+        body: JSON.stringify({ action: 'confirmarPedido', linha: linha }),
+        mode: 'no-cors'
       }).then(response => {
         alert("Pedido #" + linha + " confirmado!");
         carregarPedidos();
