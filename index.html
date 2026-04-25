@@ -19,7 +19,7 @@
     input { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
     .footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); box-sizing: border-box; z-index: 999; }
     .btn-enviar { width: 100%; padding: 15px; background: #25d366; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
-    .btn-admin-trigger { background: #333; color: white; border: none; padding: 8px 15px; margin: 10px; border-radius: 5px; font-size: 12px; }
+    .btn-admin-trigger { background: #333; color: white; border: none; padding: 8px 15px; margin: 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
     
     /* Estilos do Admin */
     #adminPanel { display:none; padding:15px; background: #f4f4f4; min-height: 100vh; position: fixed; top:0; left:0; width: 100%; box-sizing: border-box; z-index: 1000; overflow-y: auto; padding-bottom: 20px; }
@@ -83,6 +83,8 @@
     .slider:hover .slide-track {
       animation-play-state: paused;
     }
+
+    .loading { color: #c0392b; font-weight: bold; }
 
   </style>
 </head>
@@ -174,7 +176,7 @@
     <button onclick="renderPedidos('CONFIRMADO')">Confirmados</button>
   </div>
 
-  <div id="listaPedidos"></div>
+  <div id="listaPedidos" class="loading">Carregando pedidos...</div>
 </div>
 
 <script>
@@ -199,10 +201,31 @@
       return;
     }
 
-    enviarParaWhatsApp(nome, kitGlobal, valorGlobal, tel);
+    const dados = { nome: nome, telefone: tel, kit: kitGlobal, valor: valorGlobal };
+    
+    if (typeof google !== 'undefined' && google.script) {
+      // Se estiver no Google Apps Script
+      google.script.run.withSuccessHandler(function() {
+        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+      }).withFailureHandler(function(error) {
+        console.error("Erro ao salvar pedido:", error);
+        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+      }).salvarPedido(dados);
+    } else {
+      // Se estiver no GitHub Pages, envia para o Google Apps Script via Fetch
+      fetch('https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'salvarPedido', dados: dados })
+      }).then(response => {
+        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+      }).catch(error => {
+        console.error("Erro ao salvar:", error);
+        enviarParaWhatsApp(nome, kitGlobal, valorGlobal);
+      });
+    }
   }
 
-  function enviarParaWhatsApp(nome, kit, valor, tel) {
+  function enviarParaWhatsApp(nome, kit, valor) {
     const msg = "Olá! Meu nome é " + nome + ". Acabei de solicitar o (a) " + kit + " (R$ " + valor + ")";
     const url = "https://wa.me/5565999383160?text=" + encodeURIComponent(msg);
     window.top.location.href = url;
@@ -225,29 +248,30 @@
   }
 
   function carregarPedidos() {
-    // Dados de exemplo para demonstração (em produção, isso viria de um backend)
-    pedidosCache = [
-      {
-        nome: "João Silva",
-        data: "2026-04-24",
-        kit: "Kit 1",
-        valor: "130,00",
-        telefone: "5565999383160",
-        status: "ABERTO",
-        linha: 1
-      },
-      {
-        nome: "Maria Santos",
-        data: "2026-04-23",
-        kit: "Kit 2",
-        valor: "185,00",
-        telefone: "5565999383161",
-        status: "CONFIRMADO",
-        linha: 2
-      }
-    ];
+    document.getElementById("listaPedidos").innerHTML = '<span class="loading">Carregando pedidos...</span>';
     
-    renderPedidos('todos');
+    if (typeof google !== 'undefined' && google.script) {
+      // Se estiver no Google Apps Script
+      google.script.run.withSuccessHandler(function(dados) {
+        pedidosCache = dados || [];
+        renderPedidos('todos');
+      }).withFailureHandler(function(error) {
+        console.error("Erro ao carregar pedidos:", error);
+        document.getElementById("listaPedidos").innerHTML = "<p style='color: red;'>Erro ao carregar pedidos.</p>";
+      }).listarPedidos();
+    } else {
+      // Se estiver no GitHub Pages, busca do Google Apps Script
+      fetch('https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec?action=listarPedidos')
+        .then(response => response.json())
+        .then(dados => {
+          pedidosCache = dados || [];
+          renderPedidos('todos');
+        })
+        .catch(error => {
+          console.error("Erro ao carregar pedidos:", error);
+          document.getElementById("listaPedidos").innerHTML = "<p style='color: red;'>Erro ao conectar com o servidor.</p>";
+        });
+    }
   }
 
   function renderPedidos(filtro) {
@@ -287,12 +311,24 @@
   }
 
   function confirmarPedido(linha) {
-    // Atualiza o status do pedido para CONFIRMADO
-    const pedido = pedidosCache.find(p => p.linha === linha);
-    if (pedido) {
-      pedido.status = "CONFIRMADO";
-      alert("Pedido #" + linha + " confirmado!");
-      renderPedidos('todos');
+    if (typeof google !== 'undefined' && google.script) {
+      // Se estiver no Google Apps Script
+      google.script.run.withSuccessHandler(function() {
+        alert("Pedido #" + linha + " confirmado!");
+        carregarPedidos();
+      }).confirmarPedido(linha);
+    } else {
+      // Se estiver no GitHub Pages
+      fetch('https://script.google.com/macros/s/AKfycbyAHffFuespx7WOCnkDv-Yr4xvxmJOY2Zbk5SgIwz00XW5HKVjCXfQIjo294V2RvAnT/exec', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'confirmarPedido', linha: linha })
+      }).then(response => {
+        alert("Pedido #" + linha + " confirmado!");
+        carregarPedidos();
+      }).catch(error => {
+        console.error("Erro ao confirmar:", error);
+        alert("Erro ao confirmar pedido");
+      });
     }
   }
 
