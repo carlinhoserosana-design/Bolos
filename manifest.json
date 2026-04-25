@@ -1,0 +1,30 @@
+{
+  "name": "Bolos Design",
+  "short_name": "Bolos",
+  "description": "Kits de bolos, brigadeiros e salgados para suas festas",
+  "start_url": "https://carlinhoserosana-design.github.io/Bolos/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c0392b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1jr2QKMFOqkE6Jjr3zUu9bupT_nl9OMr_",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1jr2QKMFOqkE6Jjr3zUu9bupT_nl9OMr_",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1jr2QKMFOqkE6Jjr3zUu9bupT_nl9OMr_",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
